@@ -92,7 +92,6 @@ c) Economia anual com a lifecycle policy?
 
 ### Exercício 2.1 — Modelagem de dados da QC (em grupo)
 
-![Diagrama da arquitetura e modelagem de dados da QC](diagrama.drawio.png)
 
 | Domínio | Serviço Azure escolhido | SKU/Configuração | Justificativa em 1-2 frases |
 |---|---|---|---|
@@ -106,7 +105,8 @@ c) Economia anual com a lifecycle policy?
 | Histórico de navegação | Azure Event Hubs + Azure Data Lake Storage Gen2 | Event Hubs particionado para ingestão e Data Lake em Parquet com lifecycle | Event Hubs absorve bilhões de eventos com ingestão distribuída, enquanto o Data Lake armazena o histórico de forma durável e econômica para análises futuras. |
 | Modelos de ML | Azure Machine Learning | Workspace com Model Registry, Blob Storage e endpoints gerenciados com autoscale | O Model Registry versiona e promove os modelos de recomendação, classificação e churn entre ambientes. Os endpoints gerenciados permitem serving escalável e monitorado. |
 
-![Diagrama da arquitetura e modelagem de dados da QC](../diagrama.drawio.png)
+
+![Diagrama da arquitetura e modelagem de dados da QC](diagrama.drawio.png)
 
 ---
 
