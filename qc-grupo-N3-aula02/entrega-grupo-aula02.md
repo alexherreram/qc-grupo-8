@@ -50,13 +50,63 @@ a) Quanto custaria 1 mês desses logs se mantidos 100% em Hot tier? (Use ~$0,018
 
 b) Quanto custaria 1 mês desses logs com lifecycle: 30 dias Hot + Archive depois? (Archive ~$0,002/GB/mês)
 
+**Resposta:** 
+
+**-Hot: 2048 × 30/365 × $0,018 = $3,03/mês (média anual)**
+
+**-Archive: 2048 × 335/365 × $0,002 = $3,76/mês (média anual)**
+
+**Total de aproximadamente 6,79 por mês.**
+
+
 c) Economia anual com a lifecycle policy?
+
+**($36,86 - $6,79) × 12 = ~$360/ano.**
+
+### Exercício 1.3
+
+| Caso de uso | Relacional (Azure SQL) | NoSQL doc (Cosmos) | Vector DB (AI Search) | Justificativa |
+|---|---|---|---|---|
+| Carrinho de compras ativo do usuário | — | X | — | O documento pode ter esquema variável para diferentes itens e permite leitura e atualização rápidas por chave do usuário. |
+| Catálogo de produtos com SKU, preço, estoque | X | — | — | SKU, preço e estoque possuem estrutura definida e precisam de consistência nas atualizações de inventário. |
+| Reviews dos clientes (texto livre + score) | — | X | — | O formato pode variar e o documento acomoda bem texto livre, nota, autor e metadados da avaliação. |
+| "Encontre produtos similares a este" (recomendação) | — | — | X | A busca vetorial compara embeddings de produtos para encontrar itens semanticamente semelhantes. |
+| Histórico de pedidos para faturamento | X | — | — | Pedidos e itens faturáveis exigem relacionamentos, integridade referencial e transações confiáveis. |
+| Sessão do usuário (chave-valor, expira em 30min) | — | X | — | O modelo NoSQL atende ao acesso rápido por chave e permite configurar TTL de 30 minutos. |
+| Logs de comportamento de navegação | — | X | — | O volume é alto e o esquema pode evoluir, tornando documentos flexíveis mais adequados para ingestão e consulta. |
+
+### Exercício 1.4
+
+| Perfil | Role no Key Vault | Justificativa |
+|---|---|---|
+| Você (criador do Vault, faz dev e ops) | Key Vault Secrets Officer | Precisa criar, ler, atualizar e excluir segredos durante as atividades de desenvolvimento e operações. Essa role evita conceder administração completa do cofre. |
+| Azure Function que consulta `T_PRODUTOS` precisa ler a connection string | Key Vault Secrets User | Permite ler o valor dos segredos, necessário para obter a connection string, sem conceder permissão para alterá-los. |
+| Engenheiro de segurança que audita os segredos sem alterá-los | Key Vault Reader | Permite consultar o cofre e os metadados dos segredos para auditoria, sem acesso ao conteúdo nem permissão para alterá-los. |
+| Pipeline de CI/CD que injeta novos segredos automaticamente | Key Vault Secrets Officer | Permite criar e atualizar segredos para a automação do pipeline, sem conceder controle administrativo sobre o cofre. |
+| Time de FinOps que precisa ver custo do Vault sem ver segredos | Reader | Permite visualizar o recurso e seus metadados, sem acesso ao conteúdo dos segredos; a análise de custos deve ser autorizada também no escopo de cobrança adequado. |
+
 
 ---
 
 ## 🟡 Nível 2 — Respostas + Implementação
 
-(Respostas + diagramas + código quando aplicável)
+### Exercício 2.1 — Modelagem de dados da QC (em grupo)
+
+![Diagrama da arquitetura e modelagem de dados da QC](diagrama.drawio.png)
+
+| Domínio | Serviço Azure escolhido | SKU/Configuração | Justificativa em 1-2 frases |
+|---|---|---|---|
+| Produtos | Azure Cosmos DB for NoSQL | Particionamento por `categoriaId` ou `sku`, autoscale e índice para SKU | O catálogo tem grande volume e acesso distribuído, e o modelo de documentos facilita a evolução dos atributos dos produtos. O autoscale absorve variações nas consultas do e-commerce. |
+| Clientes | Azure Cosmos DB for NoSQL | Particionamento por `clienteId`, autoscale e alta disponibilidade entre regiões | O perfil, endereço e preferências formam um documento consultado frequentemente por cliente. A distribuição por `clienteId` escala os cerca de 50 milhões de registros. |
+| Pedidos | Azure SQL Database | Tier Business Critical, zone-redundant e backups com retenção adequada | Pedidos exigem transações ACID, integridade referencial e consistência forte para faturamento. O tier Business Critical oferece baixa latência e alta disponibilidade. |
+| Carrinhos ativos | Azure Cosmos DB for NoSQL | Particionamento por `clienteId`, autoscale e TTL de 24 horas | O carrinho é um documento de leitura e atualização rápida por usuário, com esquema flexível. O TTL remove automaticamente carrinhos abandonados após 24 horas. |
+| Reviews | Azure Cosmos DB for NoSQL | Particionamento por `produtoId`, autoscale e integração com Azure AI Language | Documentos acomodam texto livre, score e metadados variáveis em grande escala. As reviews podem ser processadas posteriormente para análise de sentimento. |
+| Busca de produtos | Azure AI Search | Réplicas para disponibilidade, partições para escala e índices semântico e vetorial | O serviço combina busca textual, semântica e vetorial para consultas do frontend e dos agentes. Réplicas aumentam a capacidade de consulta e a disponibilidade. |
+| Sessões | Azure Cache for Redis | Premium, replicação e TTL de 30 minutos | Redis oferece acesso em memória com baixa latência para sessões ativas e dados temporários. O TTL evita manter sessões expiradas e reduz o consumo de memória. |
+| Histórico de navegação | Azure Event Hubs + Azure Data Lake Storage Gen2 | Event Hubs particionado para ingestão e Data Lake em Parquet com lifecycle | Event Hubs absorve bilhões de eventos com ingestão distribuída, enquanto o Data Lake armazena o histórico de forma durável e econômica para análises futuras. |
+| Modelos de ML | Azure Machine Learning | Workspace com Model Registry, Blob Storage e endpoints gerenciados com autoscale | O Model Registry versiona e promove os modelos de recomendação, classificação e churn entre ambientes. Os endpoints gerenciados permitem serving escalável e monitorado. |
+
+![Diagrama da arquitetura e modelagem de dados da QC](../diagrama.drawio.png)
 
 ---
 
