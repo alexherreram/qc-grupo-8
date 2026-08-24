@@ -222,6 +222,77 @@ Portanto, um produto com 50.000 reviews está muito abaixo do limite de 20 GB. O
 
 ### Exercício 3.1 — Vector search verdadeira no AI Search
 
+### Parte A
+
+**-Resultado vector search:**
+
+=== Vector search: 'preciso de uma cadeira boa para minha coluna' ===
+
+    [0.6849] Cadeira Gamer Vermelha
+    [0.6840] Cadeira Home Office Confortável
+    [0.6665] Camiseta Polo Masculina
+
+=== Vector search: 'algo para acompanhar séries' ===
+
+    [0.6240] Camiseta Polo Masculina
+    [0.6075] Mochila para Notebook 15.6
+    [0.5945] Cafeteira Italiana 6 Xícaras
+
+=== Vector search: 'presente para um amigo que ama café' ===
+
+    [0.6821] Cafeteira Italiana 6 Xícaras
+    [0.6783] Cafeteira Nespresso Essenza Mini
+    [0.6133] Cadeira Gamer Vermelha
+
+**-Resultado lab:**
+
+Busca por keyword: “cadeira escritório”
+
+    [8.44] Cadeira Ergonômica DXRacer
+    [5.68] Cadeira Home Office Confortável
+    [5.49] Cadeira Gamer Vermelha
+
+Busca semântica: “algo para trabalhar em pé”
+
+    [2.22] Mesa de Escritório com Regulagem de Altura — Mesa em pé com motor elétrico e tampo 140x70cm...
+    [1.77] Calça Jeans Slim — Calça jeans slim fit elastano para conforto...
+    [1.75] Cadeira Gamer Vermelha — Cadeira giratória com encosto reclinável e apoio para braços...
+
+Filtro por categoria “moveis” + ordenação por preço
+
+    R$ 79,00 — Cadeira Home Office Confortável
+    R$ 129,00 — Cadeira Gamer Vermelha
+    R$ 149,90 — Cadeira Ergonômica DXRacer
+    R$ 289,00 — Mesa de Escritório com Regulagem de Altura
+
+
+**Resposta:**
+
+---lab: melhor para entender o que o cliente quer em linguagem natural;
+
+---vector search: melhor para encontrar itens semanticamente próximos em escala real;
+
+---ambos falham sem filtros por categoria e contexto.
+
+## Parte B
+
+1) Por que o modelo all-MiniLM-L6-v2 é uma má escolha para produção da Quantum Commerce?
+
+    R:  Porque ele foi desenhado para desempenho geral, não para qualidade de produção em um catálogo de e-commerce em português, com alta escala e exigência de precisão.
+
+2) Que serviço da Azure você usaria para gerar embeddings em produção?
+
+    R: Azure OpenAI com o modelo text-embedding-3-large
+
+3) Como manter os embeddings atualizados quando produtos novos chegam?
+
+    R: Usaria um pipeline incremental, em vez de regenerar tudo de novo.
+
+    Resumo, para novos produtos, embedar imediatamente. Quado alterados, re-embeddar. Para produtos antigos reprocessar periodicamente.
+
+4) Quanto custaria gerar embeddings para 5M de produtos da QC com Azure OpenAI?
+
+    R: Em uma estimativa realista do Azure OpenAI, usando text-embedding-3-large, o custo de geração inicial fica na faixa de US$ 130 a US$ 350 para 5 milhões de produtos, dependendo do tamanho médio do texto embutido (nome, descrição, atributos e categoria). Isso equivale a cerca de US$ 0,03 a US$ 0,07 por produto em média, antes de custos de armazenamento, indexação e consultas. Em produção, esse processo é feito de forma incremental, reprocessando apenas produtos novos ou alterados, o que mantém o custo controlado.
 ---
 
 ## Reflexão coletiva
