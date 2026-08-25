@@ -1,8 +1,8 @@
 # Entrega Aula <XX> — Grupo <NN>
 
 **Disciplina:** Cloud & Cognitive Environments — FIAP MBA AI Engineering & Multi-Agents
-**Turma:** <código da sua turma>
-**Data de entrega:** <DD/MM/AAAA>
+**Turma:** 1IAE
+**Data de entrega:** 24/08/2026 
 
 ## Grupo
 
