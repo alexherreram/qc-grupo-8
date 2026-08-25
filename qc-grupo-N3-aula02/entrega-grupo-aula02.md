@@ -106,7 +106,7 @@ c) Economia anual com a lifecycle policy?
 | Modelos de ML | Azure Machine Learning | Workspace com Model Registry, Blob Storage e endpoints gerenciados com autoscale | O Model Registry versiona e promove os modelos de recomendação, classificação e churn entre ambientes. Os endpoints gerenciados permitem serving escalável e monitorado. |
 
 
-![Diagrama da arquitetura e modelagem de dados da QC](../diagramas/diagrama.drawio.png)
+![Diagrama da arquitetura e modelagem de dados da QC](./diagramas/diagrama.drawio.png)
 
 
 ### Exercício 2.2 — Plano de migração de dados
