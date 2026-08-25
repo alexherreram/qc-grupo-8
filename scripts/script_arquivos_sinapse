@@ -1,0 +1,19 @@
+#!/bin/bash
+
+for mes in 01 02 03; do
+  file="logs_compras_${mes}.csv"
+  echo "periodo,id,produto,quantidade,valor" > "$file"
+  for i in $(seq 1 1000); do
+    dia=$(( (RANDOM % 28) + 1 ))
+    periodo="2026-${mes}-${dia}"
+    produto="Produto_$(( (RANDOM % 50) + 1 ))"
+    quantidade=$(( (RANDOM % 10) + 1 ))
+    valor=$(( (RANDOM % 500) + 10 ))
+    echo "$periodo,$i,$produto,$quantidade,$valor" >> "$file"
+  done
+done
+
+
+az storage blob upload --account-name stqcmc0od6 --container-name logs --file "logs_compras_01.csv" --name "logs_compras_01.csv"
+az storage blob upload --account-name stqcmc0od6 --container-name logs --file "logs_compras_02.csv" --name "logs_compras_02.csv"
+az storage blob upload --account-name stqcmc0od6 --container-name logs --file "logs_compras_03.csv" --name "logs_compras_03.csv"

@@ -295,13 +295,170 @@ Filtro por categoria “moveis” + ordenação por preço
     R: Em uma estimativa realista do Azure OpenAI, usando text-embedding-3-large, o custo de geração inicial fica na faixa de US$ 130 a US$ 350 para 5 milhões de produtos, dependendo do tamanho médio do texto embutido (nome, descrição, atributos e categoria). Isso equivale a cerca de US$ 0,03 a US$ 0,07 por produto em média, antes de custos de armazenamento, indexação e consultas. Em produção, esse processo é feito de forma incremental, reprocessando apenas produtos novos ou alterados, o que mantém o custo controlado.
 ---
 
+## Exercício 3.2 — Synapse Serverless: query sobre Blob
+
+Reporte: quantos bytes Synapse processou na query? (visível na aba "Resultados")
+
+**Statement ID: {150859AF-A260-473B-A200-8213B37DF6B5} | Query hash: 0xD2C918071E57008C | Distributed request ID: {99A3F950-2A07-429F-9426-D0D3480E29B6}. Total size of data scanned is 1 megabytes, total size of data moved is 1 megabytes, total size of data written is 0 megabytes.
+(28 records affected)**
+
+Total execution time: 00:00:01.243
+
+![alt text](image.png)
+
+![alt text](image-1.png)
+
+
+
+### 1. Por que Synapse Serverless faz sentido para a QC em vez de Synapse Dedicated Pool?
+O Synapse Serverless é mais adequado porque:
+- Não exige provisionamento de infraestrutura fixa (sem clusters dedicados).
+- Cobra apenas pelo volume de dados processados em cada query, ideal para workloads ocasionais ou exploratórios.
+- Permite consultar diretamente arquivos no Data Lake (CSV, Parquet) sem necessidade de carregar em tabelas internas.
+- Para a QC, que precisa analisar dados de forma pontual e flexível, o modelo sob demanda reduz custos e complexidade em comparação ao Dedicated Pool, que tem custo fixo mesmo sem uso.
+
+### 2. Qual o custo de query: 5 TB processados/mês a $5 por TB?
+- Custo por TB: **$5**
+- Volume mensal: **5 TB**
+- Cálculo: \( 5 \times 5 = 25 \)
+- **Custo total = $25/mês**
+
+### 3. Como reduzir custo por query? (Dica: Parquet + partições)
+- Converter os arquivos de CSV para **Parquet**, que é binário e colunar, reduzindo drasticamente o volume lido por query.
+- Usar **particionamento** (por exemplo, por ano/mês/dia) para que cada consulta
+
+
+## Exercício 3.2 — Synapse Serverless: query sobre Blob
+
+### a) Azure SQL com LIKE '%cadeira%' e filtros sobre categoria/preço
+![alt text](image-2.png)
+
+Tempo médio= 220ms
+
+
+### b) Cosmos DB com índice full-text (Cosmos não tem nativo — precisa Azure AI Search externo)
+
+SELECT *
+FROM reviews
+where reviews.produto_id = "4"
+and NOT CONTAINS(reviews.texto, "ruim")
+
+Tempo médio = 0.15ms
+
+### c) Azure AI Search com vector search
+
+    {
+    "@odata.context": "https://srch-qc-mc0od6.search.windows.net/indexes('produtos-vector-index')/$metadata#docs(*)",
+    "@odata.count": 9,
+    "value": [
+        {
+        "@search.score": 7.4828796,
+        "id": "1",
+        "nome": "Cadeira Ergonômica DXRacer",
+        "descricao": "Cadeira de escritório com apoio lombar regulável e encosto de cabeça",
+        "categoria": "moveis"
+        },
+        {
+        "@search.score": 4.2684417,
+        "id": "7",
+        "nome": "Cadeira Gamer Vermelha",
+        "descricao": "Cadeira giratória com encosto reclinável e apoio para braços",
+        "categoria": "moveis"
+        },
+        {
+        "@search.score": 3.6883354,
+        "id": "13",
+        "nome": "Mochila para Notebook 15.6",
+        "descricao": "Mochila acolchoada com compartimento para notebook",
+        "categoria": "acessorios"
+        },
+        {
+        "@search.score": 3.3612454,
+        "id": "14",
+        "nome": "Cadeira Home Office Confortável",
+        "descricao": "Cadeira giratória com rodízios e regulagem de altura",
+        "categoria": "moveis"
+        },
+        {
+        "@search.score": 1.0628735,
+        "id": "4",
+        "nome": "Tênis Nike Air Zoom Pegasus 40",
+        "descricao": "Tênis para corrida com amortecimento Air Zoom",
+        "categoria": "calcados"
+        },
+        {
+        "@search.score": 1.0628735,
+        "id": "10",
+        "nome": "Tênis Adidas Ultraboost 23",
+        "descricao": "Tênis com tecnologia Boost para conforto máximo",
+        "categoria": "calcados"
+        },
+        {
+        "@search.score": 1.0628735,
+        "id": "17",
+        "nome": "Calça Jeans Slim",
+        "descricao": "Calça jeans slim fit elastano para conforto",
+        "categoria": "vestuario"
+        },
+        {
+        "@search.score": 1.0628735,
+        "id": "19",
+        "nome": "Cafeteira Italiana 6 Xícaras",
+        "descricao": "Cafeteira italiana em alumínio para fogão",
+        "categoria": "eletrodomesticos"
+        },
+        {
+        "@search.score": 0.9071961,
+        "id": "20",
+        "nome": "Monitor Ultrawide 29",
+        "descricao": "Monitor ultrawide 29\" Full HD 75Hz para produtividade",
+        "categoria": "eletronicos"
+        }
+    ]
+    }
+
+
+1) Meça latência média de 10 queries em cada - OK (Nao conseguir pegar o tempo do AI search, mas foi bem rapido)
+
+2) Compare qualidade das respostas (subjetivamente — quem traria o produto certo?)
+
+Resposta: O AI Search (vector ou semantic)
+
+3) Compare custo projetado: 1M queries/mês em cada
+
+Resposta: Em ordem de grandeza, para 1 milhão de queries/mês, o custo fica mais ou menos assim:
+
+- Azure SQL Database: custo relativamente baixo para workload leve; em um tier pequeno ou vCore moderado, pode ficar na faixa de US$ 20 a US$ 100/mês, dependendo de CPU, IOPS e uso contínuo.
+- Cosmos DB: depende muito de RU/s, índice e consistência. Para 1M queries/mês em baixa carga, costuma ficar em US$ 10 a US$ 80/mês; com picos de uso ou alta concorrência, o custo cresce significativamente.
+- Azure AI Search: normalmente é o mais caro entre os três, porque você paga pela instância, réplicas e partições, além do custo do serviço de busca semântica/vetorial. Em uma camada pequena ou média, o valor pode ficar na faixa de US$ 50 a US$ 200/mês, mas entrega melhor qualidade de busca e maior inteligência na resposta.
+
+
+
+4) Recomende qual usar para o agente de busca da QC
+
+Conclusão: para custo puro, Azure SQL e Cosmos tendem a ser mais baratos; para qualidade de busca e interpretação de intenção, o Azure AI Search tem custo maior, mas oferece melhor experiência ao usuário. Para a QC, o melhor custo-benefício é combinar AI Search como camada de busca semântica/vetorial com SQL/Cosmos para dados transacionais e catálogo estruturado.
+
+### Tabela comparativa de tempo de resposta (latência)
+
+| Serviço | Tempo médio de resposta | Observação |
+|---|---:|---|
+| Azure SQL Database | ~200-220 ms | Excelente para consultas estruturadas e filtros exatos, mas limitada para intenção e semântica. |
+| Cosmos DB | ~15-60 ms | Muito boa para acesso por chave e documentos, porém menos natural para busca semântica livre. |
+| Azure AI Search | ~30-150 ms | Leve vantagem em buscas por intenção e vetor, mas depende de índice e embeddings bem montados. |
+
+> Em geral, os tempos das três opções ficam na mesma ordem de grandeza para workloads moderadas. A diferença principal não é o tempo bruto, mas a qualidade da resposta: SQL/Cosmos são mais rápidos para consultas estruturadas; AI Search entrega melhor relevância para busca por intenção e semântica.
+
 ## Reflexão coletiva
 
 3-5 parágrafos respondendo:
 
 1. O que o grupo aprendeu de mais importante nesta aula?
+
+    R: Nesta aula, o mais importante foi as relações de artefatos na criação da infra cloud com o terraform, para provisionar os principais tipos armazenamento de dados para sistemas transacionais e tambem de auta escala. Alem disso, foi possível entender como funcionam os mecanismos de busca com buscas vetoriais e semanticas. O tema desse lab esta muito linkado com a materia de Data Architecture. Implementar uma estrutura de dados, usando terraform é uma parcela bem grande de sistemas robustos.
 2. Como isso se conecta com a arquitetura cloud de uma plataforma agentic?
+    R: Praticamente o core. Uma plataforma agentica depende muito de dados bem estruturados e arquitetados, para que consiga lidar com assetividade na resolução dos problemas, assim como no tempo de resposta adequado para cada caso.
 3. Que decisão arquitetural vocês fariam diferente se começassem o projeto QC hoje?
+    R: Usariamos uma versao hibrida de bancos de dados tradicionais (como o Cosmos ou SQL, a depender do problema) + o AI Search, possibilitando um ferramental mais atualizado para buscas e sugestões aos clientes. Fica bem dificil no dia atual optar por uma arquitetura de dados não híbrida.
 
 ---
 
